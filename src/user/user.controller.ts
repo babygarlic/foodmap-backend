@@ -16,6 +16,7 @@ export class UserController {
   findAll() {
     //return this.userService.findAll();
     return "xin chào đay là page routers"
+
   }
 
   @Get(':id')
