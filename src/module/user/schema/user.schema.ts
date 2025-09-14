@@ -1,14 +1,12 @@
 
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
+import { timeStamp } from 'console';
 import { HydratedDocument } from 'mongoose';
 
-export type CatDocument = HydratedDocument<User>;
+export type UserDocument = HydratedDocument<User>;
 
 @Schema()
 export class User {
-  @Prop()
-  _id: string
-
   @Prop()
   name: string;
 
@@ -19,24 +17,24 @@ export class User {
   password: string
 
   @Prop()
-  phone : number
+  phone : string
 
-  @Prop()
+  @Prop({default:null})
   image: string
 
-  @Prop()
+  @Prop({default:"local"})
   account_type: string
 
-  @Prop()
-  role: number
+  @Prop({default: "users"})
+  role: string 
 
-  @Prop()
+  @Prop({default:false})
   is_active: boolean
 
-  @Prop()
+  @Prop({default:null})
   code_id: string
 
-  @Prop()
+  @Prop({default:null})
   code_expired: string
 }
 
