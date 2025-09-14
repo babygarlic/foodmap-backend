@@ -1,4 +1,4 @@
-import { Injectable, Query } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Query } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -7,6 +7,7 @@ import { Model } from 'mongoose';
 import { hashingPassword } from 'src/helpers/utils';
 import { BadRequestException } from '@nestjs/common';
 import aqp from 'api-query-params'
+import { MESSAGES } from '@nestjs/core/constants';
 
 @Injectable()
 export class UserService {
@@ -15,21 +16,16 @@ export class UserService {
     private userModel : Model<User>  
   ){}
 
-  checkEmailExist =async (email:string )=>{
-    const user = await this.userModel.exists({email})
+  checkIsExist =async (params:string )=>{
+    const user = await this.userModel.exists({params})
     if (user) return true
     else return false
   }
-  checkUserExist = async (user_id:string)=>{
-  const user = await this.userModel.exists({user_id})
-      if (user) return true
-      else return false
-  }
-
+  
   async create(createUserDto: CreateUserDto) {
     const {name, password, email, phone, image} = createUserDto
     // check email trước khi tạo user
-    const isexist = await this.checkEmailExist(email)
+    const isexist = await this.checkIsExist(email)
     if (isexist){
       throw new BadRequestException(`Email:${email} already exists`)
     }
@@ -46,17 +42,21 @@ export class UserService {
 
  async findAll(query: string) {
   const { default: aqp } = await import('api-query-params')
-  const { filter,sort,} = aqp(query);
+  const { filter,sort} = aqp(query);
+
   const toltalUser = (await this.userModel.find()).length
   const toltalPage = Math.ceil(toltalUser/(+filter.pageSize))
   const skip = (+filter.current-1)*(+filter.pageSize)
+
   if(!filter.current) filter.current = 1
   if(!filter.pageSize) filter.pageSize = 10
-    const page_user = await this.userModel
+
+  const page_user = await this.userModel
     .find()
     .limit(filter.pageSize)
     .skip(skip)
     .sort(sort as any)
+    .select("-password")
 
     return {page_user, toltalPage}
   }
@@ -77,7 +77,23 @@ export class UserService {
     return `This action updates a #${id} user`;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+ async remove(id:string) {
+    const isExistID= await this.checkIsExist(id)
+    if(isExistID){
+      const isdelete = await this.userModel.findByIdAndDelete(id).select("-password")
+      if (isdelete) {
+      } else {
+        throw new HttpException({
+          status: HttpStatus.NOT_FOUND,
+          MESSAGES: 'User ID does not exist!',
+
+        },HttpStatus.NOT_FOUND)
+      }
+ 
+    }
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Successful!',
+    };
   }
 }
