@@ -16,8 +16,9 @@ export class UserService {
     private userModel : Model<User>  
   ){}
 
-  checkIsExist =async (params:string )=>{
-    const user = await this.userModel.exists({params})
+  checkEmailExist =async (email:string,)=>{
+    const user = await this.userModel.exists({email:email})
+    console.log(user)
     if (user) return true
     else return false
   }
@@ -25,19 +26,24 @@ export class UserService {
   async create(createUserDto: CreateUserDto) {
     const {name, password, email, phone, image} = createUserDto
     // check email trước khi tạo user
-    const isexist = await this.checkIsExist(email)
+    const isexist = await this.checkEmailExist(email)
+    console.log(isexist)
     if (isexist){
       throw new BadRequestException(`Email:${email} already exists`)
-    }
-    // hash password trước khi tạo user
-    const hashPassword = await hashingPassword(password)
-    const user =  await this.userModel.create({
+    }else{
+      // hash password trước khi tạo user
+      const hashPassword = await hashingPassword(password)
+      const user =  await this.userModel.create({
       name: name, email: email, password: hashPassword, phone: phone, image: image
     })
-    return {
-      id: user._id,
-      userName: user.name
-    };
+    if (user){
+        return {
+        id: user._id,
+        userName: user.name
+      }
+    }
+    
+    }
   }
 
  async findAll(query: string) {
@@ -78,22 +84,19 @@ export class UserService {
   }
 
  async remove(id:string) {
-    const isExistID= await this.checkIsExist(id)
-    if(isExistID){
-      const isdelete = await this.userModel.findByIdAndDelete(id).select("-password")
-      if (isdelete) {
-      } else {
-        throw new HttpException({
+    const isdelete = await this.userModel.findByIdAndDelete(id)
+    if (!isdelete) {
+      throw new HttpException({
           status: HttpStatus.NOT_FOUND,
           MESSAGES: 'User ID does not exist!',
-
         },HttpStatus.NOT_FOUND)
+      }else{
+        return {
+              statusCode: HttpStatus.OK,
+              message: 'Successful!',
+            };
       }
  
-    }
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Successful!',
-    };
+    
   }
 }
