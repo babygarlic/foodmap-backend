@@ -20,6 +20,9 @@ export class User {
   phone : string
 
   @Prop({default:null})
+  address: string
+
+  @Prop({default:null})
   image: string
 
   @Prop({default:"local"})

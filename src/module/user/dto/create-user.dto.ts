@@ -15,4 +15,7 @@ export class CreateUserDto {
     @IsOptional()
     image: string
 
+    @IsOptional()
+    address: string
+
 }

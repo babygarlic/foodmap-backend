@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable, Query } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, NotFoundException, Query } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -8,6 +8,7 @@ import { hashingPassword } from 'src/helpers/utils';
 import { BadRequestException } from '@nestjs/common';
 import aqp from 'api-query-params'
 import { MESSAGES } from '@nestjs/core/constants';
+import { NOTFOUND } from 'dns';
 
 @Injectable()
 export class UserService {
@@ -16,28 +17,35 @@ export class UserService {
     private userModel : Model<User>  
   ){}
 
-  checkEmailExist =async (email:string,)=>{
+  checkEmailExist =async (email:string)=>{
     const user = await this.userModel.exists({email:email})
     console.log(user)
     if (user) return true
     else return false
   }
+  // check xem id có tồn tại hay k
+  chechIDExist = async (id: string) =>{
+    const user = await this.userModel.exists({_id:id})
+    if(user) return true
+    else return false
+  }
   
   async create(createUserDto: CreateUserDto) {
-    const {name, password, email, phone, image} = createUserDto
+    const {name, password, email, phone, image, address} = createUserDto
     // check email trước khi tạo user
     const isexist = await this.checkEmailExist(email)
-    console.log(isexist)
     if (isexist){
       throw new BadRequestException(`Email:${email} already exists`)
     }else{
       // hash password trước khi tạo user
       const hashPassword = await hashingPassword(password)
       const user =  await this.userModel.create({
-      name: name, email: email, password: hashPassword, phone: phone, image: image
+      name: name, email: email, password: hashPassword, phone: phone, image: image, address: address
     })
     if (user){
         return {
+        statuscode: HttpStatus.CREATED,
+        message: "Create user successfull",
         id: user._id,
         userName: user.name
       }
@@ -50,12 +58,12 @@ export class UserService {
   const { default: aqp } = await import('api-query-params')
   const { filter,sort} = aqp(query);
 
-  const toltalUser = (await this.userModel.find()).length
-  const toltalPage = Math.ceil(toltalUser/(+filter.pageSize))
-  const skip = (+filter.current-1)*(+filter.pageSize)
-
   if(!filter.current) filter.current = 1
   if(!filter.pageSize) filter.pageSize = 10
+
+  const toltalUser = (await this.userModel.find()).length
+  const toltalPage = Math.ceil(+toltalUser/(+filter.pageSize))
+  const skip = (+filter.current-1)*(+filter.pageSize)
 
   const page_user = await this.userModel
     .find()
@@ -78,9 +86,28 @@ export class UserService {
     }
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
+  async update(id: string, updateUserDto: UpdateUserDto) {
+    const isExitID = await this.chechIDExist(id)
+    if (isExitID){
+      await this.userModel.findByIdAndUpdate({_id: id},{...updateUserDto})
+      return {
+        status_code: HttpStatus.OK,
+        message:"Update successfull!"
+      }
+    }
+    else {
+      throw new NotFoundException('ID not available!')
+    }
     
-    return `This action updates a #${id} user`;
+  }
+
+  async changePassword(){
+    // khi thay doi password thi can kiem tra ma xac thuc gui ve mail
+    return { 
+      statuscode: HttpStatus.OK,
+      message: "Change password successfull"
+
+    }
   }
 
  async remove(id:string) {
