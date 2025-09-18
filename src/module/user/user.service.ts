@@ -75,15 +75,8 @@ export class UserService {
     return {page_user, toltalPage}
   }
 
-  async findOne(id: string) {
-    const user = await this.userModel.findById(id) 
-    return{
-      user_id: user?._id,
-      username: user?.name,
-      email: user?.email,
-      phone: user?.phone,
-      Image: user?.image
-    }
+  async findOne(email: string):Promise<User | undefined>{
+    return await this.userModel.findOne({email: email}) || undefined
   }
 
   async update(id: string, updateUserDto: UpdateUserDto) {
@@ -99,15 +92,6 @@ export class UserService {
       throw new NotFoundException('ID not available!')
     }
     
-  }
-
-  async changePassword(){
-    // khi thay doi password thi can kiem tra ma xac thuc gui ve mail
-    return { 
-      statuscode: HttpStatus.OK,
-      message: "Change password successfull"
-
-    }
   }
 
  async remove(id:string) {
